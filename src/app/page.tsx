@@ -53,8 +53,8 @@ export default async function Portfolio() {
               </p>
             )}
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <Stat label="Fine estimate from reported data" value={estimated.length ? usd(reported) : "—"} />
-              <Stat label="Fine estimate with gaps filled" value={estimated.length ? usd(adjusted) : "—"} tone={adjusted > reported ? "risk" : undefined} />
+              <Stat label="Current fines" value={estimated.length ? usd(reported) : "—"} />
+              <Stat label="Projected fines" value={estimated.length ? usd(adjusted) : "—"} tone={adjusted > reported ? "risk" : undefined} />
               <Stat label="Open data issues" value={String(open.length)} tone={open.length ? "warn" : undefined} />
             </div>
             {left_out > 0 && (
@@ -69,8 +69,8 @@ export default async function Portfolio() {
                     <th className="px-4 py-3 font-medium">Building</th>
                     <th className="px-4 py-3 font-medium">Data complete</th>
                     <th className="px-4 py-3 text-right font-medium">Emissions / limit</th>
-                    <th className="px-4 py-3 text-right font-medium">Reported fine</th>
-                    <th className="px-4 py-3 text-right font-medium">With gaps filled</th>
+                    <th className="px-4 py-3 text-right font-medium">Current fine</th>
+                    <th className="px-4 py-3 text-right font-medium">Projected fine</th>
                     <th className="px-4 py-3 text-right font-medium">Issues</th>
                   </tr>
                 </thead>

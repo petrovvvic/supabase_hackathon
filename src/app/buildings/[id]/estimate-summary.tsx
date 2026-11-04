@@ -26,7 +26,7 @@ function verdict(c: Compliance, alerts: Alert[]): { tone: Tone; title: string; d
       title: reportedFine === 0
         ? `Missing data is hiding a ${usd(adjustedFine)} fine`
         : `Missing data could raise the fine to ${usd(adjustedFine)}`,
-      detail: `The readings on file show ${usd(reportedFine)}. Add the ${missingWords} to confirm the real number.`,
+      detail: `The current fine is ${usd(reportedFine)}, but only because ${missing === 1 ? "a reading is" : "readings are"} missing. Add the ${missingWords} to confirm the real number.`,
     };
   }
   if (adjustedFine > 0) {
@@ -63,6 +63,9 @@ export function EstimateSummary({ compliance: c, alerts }: { compliance: Complia
   const { tone, title, detail } = verdict(c, alerts);
   const reported = Number(c.reported_tco2e);
   const adjusted = Number(c.adjusted_tco2e);
+  const reportedFine = Number(c.reported_fine_usd);
+  const adjustedFine = Number(c.adjusted_fine_usd);
+  const missing = c.expected_readings - c.reported_readings;
   const limit = Number(c.limit_tco2e);
   const estimated = Math.max(adjusted - reported, 0);
   const over = adjusted > limit;
@@ -76,18 +79,29 @@ export function EstimateSummary({ compliance: c, alerts }: { compliance: Complia
       <h2 className={`text-2xl font-semibold tracking-tight ${TITLE_COLOR[tone]}`}>{title}</h2>
       <p className="mt-1 text-muted">{detail}</p>
 
-      <dl className="mt-5 grid gap-4 sm:grid-cols-3">
-        <div>
-          <dt className="text-sm text-muted">Estimated emissions</dt>
-          <dd className="font-mono text-xl font-semibold">{tons(adjusted)}</dd>
+      <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-line p-4">
+          <dt className="font-medium">Current fine</dt>
+          <dd className="mt-1 font-mono text-3xl font-semibold">{usd(reportedFine)}</dd>
+          <dd className="mt-1 text-sm text-muted">
+            {c.reported_readings} of {c.expected_readings} readings on file · {tons(reported)}
+          </dd>
         </div>
-        <div>
-          <dt className="text-sm text-muted">Building&apos;s limit</dt>
-          <dd className="font-mono text-xl font-semibold">{tons(limit)}</dd>
+        <div className="rounded-lg border border-line p-4">
+          <dt className="font-medium">Projected fine</dt>
+          <dd className={`mt-1 font-mono text-3xl font-semibold ${adjustedFine > reportedFine ? "text-risk" : ""}`}>{usd(adjustedFine)}</dd>
+          <dd className="mt-1 text-sm text-muted">
+            {missing > 0
+              ? `With ${missing} missing ${missing === 1 ? "month" : "months"} estimated · ${tons(adjusted)}`
+              : `No months missing · ${tons(adjusted)}`}
+          </dd>
         </div>
-        <div>
-          <dt className="text-sm text-muted">{over ? "Over the limit by" : "Under the limit by"}</dt>
-          <dd className={`font-mono text-xl font-semibold ${over ? "text-risk" : "text-ok"}`}>{tons(Math.abs(adjusted - limit))}</dd>
+        <div className="rounded-lg border border-line p-4">
+          <dt className="font-medium">Building&apos;s limit</dt>
+          <dd className="mt-1 font-mono text-3xl font-semibold">{tons(limit)}</dd>
+          <dd className={`mt-1 text-sm ${over ? "text-risk" : "text-ok"}`}>
+            Projected {tons(Math.abs(adjusted - limit))} {over ? "over" : "under"}
+          </dd>
         </div>
       </dl>
 
@@ -123,7 +137,7 @@ export function EstimateSummary({ compliance: c, alerts }: { compliance: Complia
       <details className="mt-4 text-sm text-muted">
         <summary className="cursor-pointer font-medium">How this is calculated</summary>
         <p className="mt-2">
-          The fine is $268 for each ton over the limit, using the last 12 completed months. Missing months are filled from the same month last year, or from the average of reported months if last year is missing too.
+          Both fines are $268 for each ton over the limit, using the last 12 completed months. The current fine counts only the readings on file. The projected fine also fills missing months from the same month last year, or from the average of reported months if last year is missing too.
         </p>
         <p className="mt-2">This is an estimate, not a filing. Local Law 97 is assessed by calendar year.</p>
       </details>
