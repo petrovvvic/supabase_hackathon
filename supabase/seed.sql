@@ -1,4 +1,4 @@
--- Fictional sample portfolio for the demo. Addresses and figures are invented.
+-- Sample portfolio for the demo. All readings are invented, as are the addresses except 307 West 38th.
 -- Demo login: demo@meterproof.app / meterproof-demo
 do $$
 declare
@@ -79,4 +79,36 @@ begin
   select building_id, fuel, period_month, quantity, unit, source,
          period_month + interval '1 month' + interval '6 days'
   from seed_readings;
+end $$;
+
+-- 307 West 38th Street is a real building (the hackathon venue, 300,000 sq ft office).
+-- Its floor area is real; every reading is invented and the name says so.
+do $$
+declare
+  v_user uuid := '7a1f3c52-9b0e-4d6a-8c21-5e0f4b7d1a90';
+  v_id uuid := '11111111-0000-4000-8000-000000000009';
+begin
+  if exists (select 1 from public.buildings where id = v_id) then
+    return;
+  end if;
+
+  insert into public.buildings (id, owner_id, name, address, occupancy_group, gross_floor_area_sf, uses_natural_gas)
+  values (v_id, v_user, '307 West 38th (sample readings)', '307 West 38th Street, Manhattan, NY 10018', 'B', 300000, true);
+
+  perform setseed(0.38);
+
+  insert into public.meter_readings (building_id, fuel, period_month, quantity, unit, source, created_at)
+  select v_id, f.fuel, m::date, 
+         round(300000 * f.per_sf
+               * (case f.fuel
+                    when 'electricity' then (array[.078,.073,.076,.074,.084,.098,.112,.112,.094,.077,.072,.075])[extract(month from m)::int]
+                    else (array[.205,.185,.150,.085,.035,.015,.010,.010,.015,.050,.095,.155])[extract(month from m)::int]
+                  end)
+               * (0.96 + random()::numeric * 0.08), 0),
+         f.unit, 'utility_bill', m + interval '1 month' + interval '6 days'
+  from (values ('electricity', 'kWh', 14.0::numeric), ('natural_gas', 'therm', 0.20::numeric)) as f (fuel, unit, per_sf)
+  cross join generate_series(date_trunc('month', now()) - interval '24 months',
+                             date_trunc('month', now()) - interval '1 month', interval '1 month') as m
+  -- One missing summer electricity bill, to show a gap on a building under its limit.
+  where not (f.fuel = 'electricity' and m = date_trunc('month', now()) - interval '3 months');
 end $$;

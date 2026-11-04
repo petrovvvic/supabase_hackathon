@@ -68,7 +68,7 @@ export default function LoginPage() {
         >
           {mode === "in" ? "Create a new account instead" : "Back to log in"}
         </button>
-        <p className="mt-4 text-xs text-muted">The form is filled in with a demo account that holds a fictional portfolio.</p>
+        <p className="mt-4 text-xs text-muted">The form is filled in with a demo account. All its readings are sample data.</p>
       </form>
     </main>
   );

@@ -43,7 +43,7 @@ Under NYC's Local Law 97, large buildings pay $268 for every ton of carbon over 
 - [x] Alerts open and resolve themselves as readings change
 - [x] Seeded fictional portfolio of 8 buildings
 
-Demo login: `demo@meterproof.app` / `meterproof-demo` (fictional data).
+Demo login: `demo@meterproof.app` / `meterproof-demo`. All readings are invented. Addresses are too, except 307 West 38th Street, where the hackathon took place; only its floor area is real.
 
 ## How the estimate works
 
@@ -103,7 +103,7 @@ npx supabase functions deploy submit-reading
 
 ## Demo
 
-- Live URL: [add]
+- Live URL: https://meterproof-rust.vercel.app
 - Demo video: [add]
 - Sodabase Data Quality Score: [add]
 
