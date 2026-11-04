@@ -1,8 +1,12 @@
 # Meterproof
 
-> NYC building managers can see what missing or mistyped meter readings do to their Local Law 97 fine estimate, before they file.
+> Sodabase tells you when your database can't be trusted. Meterproof does the same for a building's meter data, and shows what it costs in fines.
 
 Built for the Supabase x Sodabase x BuilderBase NYC Hackathon (Nov 4, 2026).
+
+**[Try the live app](https://meterproof-rust.vercel.app)** with `demo@meterproof.app` / `meterproof-demo` (the login form is prefilled).
+
+![The Marlowe: a $0 current fine next to a $26,203 projected fine](docs/marlowe.jpg)
 
 ## Problem
 
@@ -10,26 +14,18 @@ Under NYC's Local Law 97, large buildings pay $268 for every ton of carbon over 
 
 **Meterproof shows the gaps before the fine does.**
 
-## Hackathon rules (context for Claude)
+## How it meets the judging criteria
 
-**Deadlines**
-- 5:30 PM ET: Sodabase must be connected (connect earlier, it needs time to learn how tables change)
-- 7:00 PM ET: submission closes on BuilderBase
-
-**Submission requires**
-- Public GitHub repo
-- Demo video or live URL that shows the app working end to end
-- Sodabase Data Quality Score
-
-**Judging (25% each)**
-1. Data quality: Sodabase score and how well the app keeps data clean
-2. Built to scale: schema, indexes, row-level security, edge functions
-3. Execution: demo works end to end
-4. Craft: polish, originality, clear problem
+| Criterion | What we built | Where to look |
+|---|---|---|
+| **Data quality** | 0 Sodabase errors, with all 7 tables trusted. Bad readings are rejected by the edge function and again by the database. Suspicious readings and gaps raise alerts that resolve themselves. | [Data quality rules](#data-quality-rules) |
+| **Built to scale** | Row-level security on all 7 tables, indexed foreign keys, 8 committed migrations, an edge function and a scheduled job. | [Built to scale](#built-to-scale), [`supabase/migrations`](supabase/migrations) |
+| **Execution** | Live and working end to end: log in, find a problem, correct a reading, and watch the fine update. An independent recalculation of every fine matched the app. | [Live app](https://meterproof-rust.vercel.app) |
+| **Craft** | One clear idea, a current fine next to a projected fine, on a real NYC problem. Each building opens with a one-sentence verdict. | [Screenshots](#screenshots) |
 
 ## Tech stack
 
-- Supabase: Postgres, Auth, Storage, Edge Functions
+- Supabase: Postgres, Auth, Edge Functions, pg_cron
 - Sodabase: data quality monitoring
 - Frontend: Next.js, React, Tailwind
 - Hosting: Vercel
@@ -37,20 +33,22 @@ Under NYC's Local Law 97, large buildings pay $268 for every ton of carbon over 
 ## Features
 
 - [x] Auth (sign up / log in)
-- [x] Portfolio: fine estimate from reported data next to the estimate with gaps filled
-- [x] Building page: 12-month readings grid, open issues, emissions against the limit
+- [x] Portfolio: current fines next to projected fines, sorted so the biggest differences come first
+- [x] Building page: a one-sentence verdict, both fines, emissions against the limit, a 12-month readings grid and open issues
 - [x] Add or correct a reading, validated by an edge function
 - [x] Alerts open and resolve themselves as readings change
+- [x] "Not enough data" instead of a fine until each meter has 6 of the last 12 months
 - [x] Seeded sample portfolio of 9 buildings
 
-Demo login: `demo@meterproof.app` / `meterproof-demo`. All readings are invented. Addresses are too, except 307 West 38th Street, where the hackathon took place; only its floor area is real.
+All readings are invented. Addresses are too, except 307 West 38th Street, where the hackathon took place; only its floor area is real.
 
 ## How the estimate works
 
 - Window: trailing 12 completed months, so every season is covered. LL97 itself is assessed by calendar year, so this is a run-rate estimate.
 - Emissions: usage x LL97 coefficient (2024-2029). Electricity 0.000288962 tCO2e/kWh, natural gas 0.00005311 tCO2e/kBtu (0.005311 per therm).
 - Limits: office (B) 0.00846, hotel (R-1) 0.00987, multifamily (R-2) 0.00675 tCO2e/sf. Fine: $268 per ton over the limit.
-- Missing months are filled from the same month last year, then from the average of reported months.
+- Current fine: counts only the readings on file.
+- Projected fine: also fills missing months from the same month last year, then from the average of reported months. It estimates the same 12 months and doesn't forecast future ones.
 - No estimate is shown until each meter the building uses has at least 6 of the last 12 months. Overall completeness would hide a meter with no readings, which would count as zero.
 - These are estimates, not filings. Real LL97 reports also handle mixed occupancy, other fuels and deductions, which are out of scope. Each factor and limit row stores its source URL.
 
@@ -68,17 +66,15 @@ Demo login: `demo@meterproof.app` / `meterproof-demo`. All readings are invented
 
 `building_compliance` is a `security_invoker` view holding the one calculation every screen uses.
 
-## Data quality rules (protects the Sodabase score)
+## Data quality rules
 
 - NOT NULL, CHECK, UNIQUE and foreign key constraints on every table
-- Sensible defaults; no empty tables or unused columns
 - `updated_at` trigger on all tables so rows never look stale
 - Edge function validates input before it reaches the database
-- Realistic seed data only (no "test123" rows)
-- Keep real activity flowing after connecting Sodabase (updates, new rows)
+- Realistic seed data, with deliberate gaps and one typo so the checks have something to catch
 - Addresses are structured: street must start with a building number, borough must be one of the five, ZIP must be in NYC. The same address can't be added twice
 - `created_at <= updated_at` enforced on every table. Sodabase caught seeded rows that broke this; we fixed the timestamps with a migration, fixed the seed, and added the constraint
-- Rules watched by Sodabase: `created_at <= updated_at`, `quantity >= 0`, valid `unit` on `meter_readings`; valid `status` on `alerts`; `gross_floor_area_sf > 25000` on `buildings`
+- Rules watched by Sodabase: `created_at <= updated_at`, `quantity >= 0` and valid `unit` on `meter_readings`; valid `status` on `alerts`; `gross_floor_area_sf > 25000` on `buildings`; `tco2e_per_unit > 0` on `emission_factors`; `tco2e_per_sf > 0` on `emission_limits`; `created_at <= updated_at` on `profiles`; `completeness_pct` between 0 and 100 on `data_health_snapshots`
 
 ## Built to scale
 
@@ -111,23 +107,16 @@ npx supabase functions deploy submit-reading
 
 - Live URL: https://meterproof-rust.vercel.app
 - Demo video: [add]
-- Sodabase Data Quality Score: 0 errors across all 7 watched tables (scan of Nov 4, 2026, 5:44 PM ET)
+- Sodabase Data Quality Score: 0 errors, all 7 watched tables trusted (scan of Nov 4, 2026, 6:23 PM ET)
 
-## Timeline
+## Screenshots
 
-- 4:30 to 5:00: schema, auth, Sodabase connected
-- 5:00 to 6:15: core features, constraints, RLS, indexes
-- 6:15 to 6:45: polish, deploy, seed data (feature freeze at 6:15)
-- 6:45 to 7:00: video, README, submit
+![Portfolio with current and projected fines](docs/portfolio.jpg)
+
+## What's next
+
+Connect utility data instead of typing readings, add more building types and fuels, calculate by calendar year, and show the data health history on screen.
 
 ## Team
 
 - Andrei Piatrouski
-
-## Instructions for Claude
-
-- Keep scope minimal: finish the MVP before adding anything.
-- Always add constraints, RLS policies and indexes when creating a table.
-- Write migrations as files in `/supabase/migrations`, never only in the dashboard.
-- Prefer small, working increments; the app must run end to end at all times.
-- Update this README (stack, schema, features) as decisions are made.
