@@ -6,9 +6,6 @@ import type { Alert, Building, Compliance } from "@/lib/types";
 import { Header } from "./header";
 import { AddBuilding } from "./add-building";
 
-// Signed-in data only: render per request instead of prerendering a shell.
-export const instant = false;
-
 export default async function Portfolio() {
   await connection();
   const supabase = await createClient();

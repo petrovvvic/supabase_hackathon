@@ -15,9 +15,6 @@ function windowMonths(start: string) {
   return Array.from({ length: 12 }, (_, i) => new Date(Date.UTC(y, m - 1 + i, 1)).toISOString().slice(0, 10));
 }
 
-// Signed-in data only: render per request instead of prerendering a shell.
-export const instant = false;
-
 export default async function BuildingPage({ params }: { params: Promise<{ id: string }> }) {
   await connection();
   const { id } = await params;

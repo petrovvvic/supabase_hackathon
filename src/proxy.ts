@@ -18,7 +18,10 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // Verifies the signed token locally, with no call to the auth server on every click.
+  // It still refreshes an expired session, and RLS checks the token on every query.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
   const isLogin = request.nextUrl.pathname === "/login";
   if (!user && !isLogin) return NextResponse.redirect(new URL("/login", request.url));
   if (user && isLogin) return NextResponse.redirect(new URL("/", request.url));
