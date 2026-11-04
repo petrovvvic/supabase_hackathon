@@ -111,7 +111,7 @@ npx supabase functions deploy submit-reading
 
 - Live URL: https://meterproof-rust.vercel.app
 - Demo video: [add]
-- Sodabase Data Quality Score: [add]
+- Sodabase Data Quality Score: 0 errors across all 7 watched tables (scan of Nov 4, 2026, 5:44 PM ET)
 
 ## Timeline
 
