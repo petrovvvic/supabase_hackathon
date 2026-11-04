@@ -77,7 +77,7 @@ begin
 
   insert into public.meter_readings (building_id, fuel, period_month, quantity, unit, source, created_at)
   select building_id, fuel, period_month, quantity, unit, source,
-         period_month + interval '1 month' + interval '6 days'
+         least(period_month + interval '1 month' + interval '6 days', now())
   from seed_readings;
 end $$;
 
@@ -105,7 +105,7 @@ begin
                     else (array[.205,.185,.150,.085,.035,.015,.010,.010,.015,.050,.095,.155])[extract(month from m)::int]
                   end)
                * (0.96 + random()::numeric * 0.08), 0),
-         f.unit, 'utility_bill', m + interval '1 month' + interval '6 days'
+         f.unit, 'utility_bill', least(m + interval '1 month' + interval '6 days', now())
   from (values ('electricity', 'kWh', 14.0::numeric), ('natural_gas', 'therm', 0.20::numeric)) as f (fuel, unit, per_sf)
   cross join generate_series(date_trunc('month', now()) - interval '24 months',
                              date_trunc('month', now()) - interval '1 month', interval '1 month') as m
