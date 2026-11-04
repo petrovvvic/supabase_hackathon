@@ -75,6 +75,8 @@ Demo login: `demo@meterproof.app` / `meterproof-demo`. All readings are invented
 - Edge function validates input before it reaches the database
 - Realistic seed data only (no "test123" rows)
 - Keep real activity flowing after connecting Sodabase (updates, new rows)
+- `created_at <= updated_at` enforced on every table. Sodabase caught seeded rows that broke this; we fixed the timestamps with a migration, fixed the seed, and added the constraint
+- Rules watched by Sodabase: `created_at <= updated_at`, `quantity >= 0`, valid `unit` on `meter_readings`; valid `status` on `alerts`; `gross_floor_area_sf > 25000` on `buildings`
 
 ## Built to scale
 
