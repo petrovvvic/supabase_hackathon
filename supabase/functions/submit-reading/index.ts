@@ -8,8 +8,9 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const UNITS: Record<string, string> = { electricity: "kWh", natural_gas: "therm" };
-// Highest believable monthly use per square foot, roughly 5x a heavy NYC building.
-const MAX_PER_SF_MONTH: Record<string, number> = { electricity: 10, natural_gas: 1 };
+// Highest believable monthly use per square foot. Matches private.validate_reading().
+// Smaller typos pass this and are flagged by the out_of_range alert instead.
+const MAX_PER_SF_MONTH: Record<string, number> = { electricity: 20, natural_gas: 1 };
 
 const reply = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -30,6 +31,9 @@ Deno.serve(async (req) => {
   } catch {
     return reply(400, { error: "Body must be JSON." });
   }
+  if (input === null || typeof input !== "object" || Array.isArray(input)) {
+    return reply(400, { error: "Body must be a JSON object." });
+  }
 
   const { building_id, fuel, period_month, quantity, replace } = input;
   if (typeof building_id !== "string") return reply(400, { error: "building_id is required." });
@@ -39,8 +43,11 @@ Deno.serve(async (req) => {
   if (typeof period_month !== "string" || !/^\d{4}-(0[1-9]|1[0-2])$/.test(period_month)) {
     return reply(400, { error: "Month must look like 2026-03." });
   }
-  const amount = Number(quantity);
-  if (quantity === "" || quantity === null || !Number.isFinite(amount) || amount < 0) {
+  // Only real numbers and numeric strings: Number() turns false, [] and "  " into 0.
+  const isNumeric = typeof quantity === "number" ||
+    (typeof quantity === "string" && quantity.trim() !== "");
+  const amount = isNumeric ? Number(quantity) : NaN;
+  if (!Number.isFinite(amount) || amount < 0) {
     return reply(400, { error: "Usage must be a number that is zero or more." });
   }
 
