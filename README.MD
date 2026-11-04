@@ -61,6 +61,7 @@ Demo login: `demo@meterproof.app` / `meterproof-demo`. All readings are invented
 | `buildings` | Covered buildings | `owner_id`, `address`, `occupancy_group`, `gross_floor_area_sf`, `uses_natural_gas` |
 | `meter_readings` | Monthly usage | `building_id`, `fuel`, `period_month`, `quantity`, `unit`, `source` |
 | `alerts` | Data issues, written only by the database | `building_id`, `kind`, `severity`, `fuel`, `period_month`, `status` |
+| `data_health_snapshots` | Each building's data health over time, written by the scheduled job | `building_id`, `captured_at`, `completeness_pct`, `open_issues`, `adjusted_fine_usd` |
 | `emission_factors` | LL97 coefficients (config) | `fuel`, `unit`, `tco2e_per_unit`, `source_url` |
 | `emission_limits` | LL97 limits and fine rate (config) | `occupancy_group`, `tco2e_per_sf`, `penalty_usd_per_tco2e`, `source_url` |
 
@@ -82,6 +83,7 @@ Demo login: `demo@meterproof.app` / `meterproof-demo`. All readings are invented
 - Normalized schema; migrations committed in `/supabase/migrations`
 - Edge function `submit-reading`: validates format, completed month, unit and a size-based ceiling, then writes with the caller's JWT so RLS still applies
 - Alert engine in private Postgres functions, run by statement-level triggers so bulk loads recompute once per building
+- Scheduled job `capture-data-health` (pg_cron): refreshes alerts so a newly missed month gets flagged, and records each building's health in `data_health_snapshots`. It runs every 15 minutes, which is faster than the product needs, so Sodabase has steady real data to learn from during the hackathon. Daily would be enough in production
 
 ## Getting started
 
