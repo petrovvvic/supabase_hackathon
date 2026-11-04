@@ -34,8 +34,8 @@ begin
     ('11111111-0000-4000-8000-000000000007', 'Tillary Plaza', '160 Tobin Square, Brooklyn, NY 11201', 'B', 128000, true, 13.8, 0.19, 'manual_entry'),
     ('11111111-0000-4000-8000-000000000008', 'Riverside Gardens', '3401 Palisade Walk, Bronx, NY 10463', 'R-2', 91000, true, 4.6, 0.82, 'utility_bill');
 
-  insert into public.buildings (id, owner_id, name, address, occupancy_group, gross_floor_area_sf, uses_natural_gas)
-  select id, v_user, name, address, occ, sf, gas from seed_buildings;
+  insert into public.buildings (id, owner_id, name, street_address, borough, zip_code, occupancy_group, gross_floor_area_sf, uses_natural_gas)
+  select id, v_user, name, split_part(address, ', ', 1), split_part(address, ', ', 2), right(address, 5), occ, sf, gas from seed_buildings;
 
   perform setseed(0.97);
 
@@ -92,8 +92,8 @@ begin
     return;
   end if;
 
-  insert into public.buildings (id, owner_id, name, address, occupancy_group, gross_floor_area_sf, uses_natural_gas)
-  values (v_id, v_user, '307 West 38th (sample readings)', '307 West 38th Street, Manhattan, NY 10018', 'B', 300000, true);
+  insert into public.buildings (id, owner_id, name, street_address, borough, zip_code, occupancy_group, gross_floor_area_sf, uses_natural_gas)
+  values (v_id, v_user, '307 West 38th (sample readings)', '307 West 38th Street', 'Manhattan', '10018', 'B', 300000, true);
 
   perform setseed(0.38);
 

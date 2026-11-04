@@ -58,7 +58,7 @@ Demo login: `demo@meterproof.app` / `meterproof-demo`. All readings are invented
 | Table | Purpose | Key columns |
 |-------|---------|-------------|
 | `profiles` | Users, created on signup | `id` (FK auth.users), `full_name` |
-| `buildings` | Covered buildings | `owner_id`, `address`, `occupancy_group`, `gross_floor_area_sf`, `uses_natural_gas` |
+| `buildings` | Covered buildings | `owner_id`, `street_address`, `borough`, `zip_code`, `address` (generated), `occupancy_group`, `gross_floor_area_sf`, `uses_natural_gas` |
 | `meter_readings` | Monthly usage | `building_id`, `fuel`, `period_month`, `quantity`, `unit`, `source` |
 | `alerts` | Data issues, written only by the database | `building_id`, `kind`, `severity`, `fuel`, `period_month`, `status` |
 | `data_health_snapshots` | Each building's data health over time, written by the scheduled job | `building_id`, `captured_at`, `completeness_pct`, `open_issues`, `adjusted_fine_usd` |
@@ -75,6 +75,7 @@ Demo login: `demo@meterproof.app` / `meterproof-demo`. All readings are invented
 - Edge function validates input before it reaches the database
 - Realistic seed data only (no "test123" rows)
 - Keep real activity flowing after connecting Sodabase (updates, new rows)
+- Addresses are structured: street must start with a building number, borough must be one of the five, ZIP must be in NYC. The same address can't be added twice
 - `created_at <= updated_at` enforced on every table. Sodabase caught seeded rows that broke this; we fixed the timestamps with a migration, fixed the seed, and added the constraint
 - Rules watched by Sodabase: `created_at <= updated_at`, `quantity >= 0`, valid `unit` on `meter_readings`; valid `status` on `alerts`; `gross_floor_area_sf > 25000` on `buildings`
 

@@ -21,7 +21,9 @@ export function AddBuilding() {
     const { error } = await supabase.from("buildings").insert({
       owner_id: user?.id,
       name: String(f.get("name")).trim(),
-      address: String(f.get("address")).trim(),
+      street_address: String(f.get("street_address")).trim().replace(/\s+/g, " "),
+      borough: f.get("borough"),
+      zip_code: String(f.get("zip_code")).trim(),
       occupancy_group: f.get("occupancy_group"),
       gross_floor_area_sf: Number(f.get("sf")),
       uses_natural_gas: f.get("gas") === "on",
@@ -29,6 +31,8 @@ export function AddBuilding() {
     setBusy(false);
     if (error) {
       return setError(error.code === "23505" ? "You already have a building at this address." :
+        error.message.includes("street_address") ? "Enter the street with its building number, like 351 West 44th Street." :
+        error.message.includes("zip_code") ? "Enter a New York City ZIP code." :
         error.code === "23514" ? "Check the details. LL97 generally covers buildings over 25,000 sq ft." : error.message);
     }
     form.reset();
@@ -43,7 +47,24 @@ export function AddBuilding() {
   return (
     <form onSubmit={submit} className="mt-5 grid gap-4 rounded-lg border border-line bg-surface p-5 sm:grid-cols-2">
       <label className="text-sm font-medium">Name<input name="name" required maxLength={120} className={field} /></label>
-      <label className="text-sm font-medium">Address<input name="address" required minLength={5} maxLength={200} className={field} /></label>
+      <label className="text-sm font-medium">Street address
+        <input name="street_address" required maxLength={120} pattern="\s*[0-9]+(-[0-9]+)?[A-Za-z]? .{2,}" title="Building number and street, like 351 West 44th Street" placeholder="351 West 44th Street" autoComplete="address-line1" className={field} />
+      </label>
+      <div className="grid grid-cols-2 gap-4">
+        <label className="text-sm font-medium">Borough
+          <select name="borough" required defaultValue="" className={field}>
+            <option value="" disabled>Select</option>
+            <option>Manhattan</option>
+            <option>Brooklyn</option>
+            <option>Queens</option>
+            <option>Bronx</option>
+            <option>Staten Island</option>
+          </select>
+        </label>
+        <label className="text-sm font-medium">ZIP code
+          <input name="zip_code" required inputMode="numeric" maxLength={5} pattern="1(0[0-4]|1[0-6])[0-9]{2}" title="A New York City ZIP code, like 10036" placeholder="10036" autoComplete="postal-code" className={field} />
+        </label>
+      </div>
       <label className="text-sm font-medium">Building type
         <select name="occupancy_group" className={field} defaultValue="R-2">
           <option value="R-2">Multifamily (R-2)</option>

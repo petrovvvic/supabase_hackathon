@@ -69,9 +69,9 @@ export default async function Portfolio() {
                 </thead>
                 <tbody>
                   {rows.map(({ b, c, issues }) => (
-                    <tr key={b.id} className="border-b border-line last:border-0 hover:bg-ground">
+                    <tr key={b.id} className="relative border-b border-line last:border-0 hover:bg-ground">
                       <td className="px-4 py-3">
-                        <Link href={`/buildings/${b.id}`} className="font-medium underline-offset-2 hover:underline">{b.name}</Link>
+                        <Link href={`/buildings/${b.id}`} className="font-medium underline-offset-2 hover:underline after:absolute after:inset-0">{b.name}</Link>
                         <div className="text-xs text-muted">{b.address}</div>
                       </td>
                       <td className="px-4 py-3">
