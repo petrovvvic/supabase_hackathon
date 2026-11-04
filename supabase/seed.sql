@@ -82,7 +82,7 @@ begin
 end $$;
 
 -- 307 West 38th Street is a real building (the hackathon venue, 300,000 sq ft office).
--- Its floor area is real; every reading is invented and the name says so.
+-- Its floor area is real; every reading is invented.
 do $$
 declare
   v_user uuid := '7a1f3c52-9b0e-4d6a-8c21-5e0f4b7d1a90';
@@ -93,7 +93,7 @@ begin
   end if;
 
   insert into public.buildings (id, owner_id, name, street_address, borough, zip_code, occupancy_group, gross_floor_area_sf, uses_natural_gas)
-  values (v_id, v_user, '307 West 38th (sample readings)', '307 West 38th Street', 'Manhattan', '10018', 'B', 300000, true);
+  values (v_id, v_user, '307 West 38th', '307 West 38th Street', 'Manhattan', '10018', 'B', 300000, true);
 
   perform setseed(0.38);
 
