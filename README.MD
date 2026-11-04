@@ -4,7 +4,7 @@
 
 Built for the Supabase x Sodabase x BuilderBase NYC Hackathon (Nov 4, 2026).
 
-**[Try the live app](https://meterproof-rust.vercel.app)** with `demo@meterproof.app` / `meterproof-demo` (the login form is prefilled).
+**[Watch the demo](https://youtu.be/SFOojjTmmVA)** or **[try the live app](https://meterproof-rust.vercel.app)** with `demo@meterproof.app` / `meterproof-demo` (the login form is prefilled).
 
 ![The Marlowe: a $0 current fine next to a $26,203 projected fine](docs/marlowe.jpg)
 
@@ -106,7 +106,7 @@ npx supabase functions deploy submit-reading
 ## Demo
 
 - Live URL: https://meterproof-rust.vercel.app
-- Demo video: [add]
+- Demo video: https://youtu.be/SFOojjTmmVA
 - Sodabase Data Quality Score: 0 errors, all 7 watched tables trusted (scan of Nov 4, 2026, 6:23 PM ET)
 
 ## Screenshots
