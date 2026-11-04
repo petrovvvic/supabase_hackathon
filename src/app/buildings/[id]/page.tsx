@@ -2,9 +2,10 @@ import { connection } from "next/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { fuelLabel, monthLabel, tons, usage, usd } from "@/lib/format";
+import { fuelLabel, monthLabel, usage } from "@/lib/format";
 import type { Alert, Building, Compliance, Reading } from "@/lib/types";
 import { Header } from "../../header";
+import { EstimateSummary } from "./estimate-summary";
 import { ReadingForm } from "./reading-form";
 
 const GROUPS: Record<string, string> = { B: "Office", "R-1": "Hotel", "R-2": "Multifamily" };
@@ -42,10 +43,6 @@ export default async function BuildingPage({ params }: { params: Promise<{ id: s
   const flagged = new Set(open.filter((a) => a.kind === "out_of_range").map((a) => `${a.fuel}|${a.period_month}`));
   const has = new Map(all.map((r) => [`${r.fuel}|${r.period_month}`, r]));
 
-  const reportedFine = Number(c.reported_fine_usd);
-  const adjustedFine = Number(c.adjusted_fine_usd);
-  const scaleMax = Math.max(Number(c.adjusted_tco2e), Number(c.reported_tco2e), Number(c.limit_tco2e)) * 1.08;
-  const pct = (n: number) => `${(Number(n) / scaleMax) * 100}%`;
 
   return (
     <>
@@ -68,34 +65,7 @@ export default async function BuildingPage({ params }: { params: Promise<{ id: s
           </ul>
         </section>
         ) : (
-        <section className="mt-6 rounded-lg border border-line bg-surface p-5">
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div>
-              <div className="text-sm text-muted">Fine estimate from reported data</div>
-              <div className="font-mono text-3xl font-semibold">{usd(reportedFine)}</div>
-              <div className="font-mono text-sm text-muted">{tons(c.reported_tco2e)} CO2e</div>
-            </div>
-            <div>
-              <div className="text-sm text-muted">Fine estimate with gaps filled</div>
-              <div className={`font-mono text-3xl font-semibold ${adjustedFine > reportedFine ? "text-risk" : ""}`}>{usd(adjustedFine)}</div>
-              <div className="font-mono text-sm text-muted">{tons(c.adjusted_tco2e)} CO2e</div>
-            </div>
-          </div>
-          <div className="relative mt-6 h-16" role="img" aria-label={`Reported ${tons(c.reported_tco2e)}, gaps filled ${tons(c.adjusted_tco2e)}, limit ${tons(c.limit_tco2e)}`}>
-            <div className="absolute top-1 h-3 rounded-sm bg-ink/70" style={{ width: pct(c.reported_tco2e) }} />
-            <div className={`absolute top-5 h-3 rounded-sm ${Number(c.adjusted_tco2e) > Number(c.limit_tco2e) ? "bg-risk" : "bg-ok"}`} style={{ width: pct(c.adjusted_tco2e) }} />
-            <div className="absolute top-0 h-9 w-0.5 bg-ink" style={{ left: pct(c.limit_tco2e) }} />
-            <div className="absolute top-10 -translate-x-1/2 whitespace-nowrap font-mono text-xs" style={{ left: `min(max(${pct(c.limit_tco2e)}, 3.5rem), calc(100% - 3.5rem))` }}>limit {tons(c.limit_tco2e)}</div>
-          </div>
-          <p className="mt-1 text-sm text-muted">
-            Top bar: reported readings. Lower bar: missing months filled from the same month last year, or from the average of reported months if last year is missing too. $268 per ton over the limit. This is a rolling 12-month estimate, not a filing. LL97 is assessed by calendar year.
-          </p>
-          {open.some((a) => a.kind === "out_of_range") && (
-            <p className="mt-2 rounded-md bg-warn-soft px-3 py-2 text-sm text-warn">
-              This estimate includes a flagged reading. Check it before relying on these numbers.
-            </p>
-          )}
-        </section>
+          <EstimateSummary compliance={c} alerts={open} />
         )}
 
         <section className="mt-6 rounded-lg border border-line bg-surface p-5">
