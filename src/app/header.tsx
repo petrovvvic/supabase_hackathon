@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { nextDeadline } from "@/lib/format";
+import { Help } from "./help";
 
 async function signOut() {
   "use server";
@@ -18,6 +19,7 @@ export function Header() {
         <Link href="/" className="font-semibold tracking-tight">Meterproof</Link>
         <div className="flex items-center gap-4 text-sm text-muted">
           <span><strong className="font-mono text-ink">{deadline.days}</strong> days to the {deadline.label} filing</span>
+          <Help />
           <form action={signOut}><button className="underline">Log out</button></form>
         </div>
       </div>
