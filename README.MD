@@ -1,12 +1,14 @@
-# [PROJECT NAME]
+# Meterproof
 
-> One-line pitch: [who] can [do what] so that [outcome]. Data stays clean automatically.
+> NYC building managers can see what missing or mistyped meter readings do to their Local Law 97 fine estimate, before they file.
 
 Built for the Supabase x Sodabase x BuilderBase NYC Hackathon (Nov 4, 2026).
 
 ## Problem
 
-[1 to 2 sentences: the problem, who has it, why it matters. Fill in once the idea is chosen.]
+Under NYC's Local Law 97, large buildings pay $268 for every ton of carbon over their limit, and that bill is calculated from monthly meter readings. Those readings go missing and get mistyped, so managers find out too late that their numbers were wrong. In our sample data, two missing winter gas bills make a building that's on track for a $26,000 fine look like it owes nothing.
+
+**Meterproof shows the gaps before the fine does.**
 
 ## Hackathon rules (context for Claude)
 
@@ -29,24 +31,40 @@ Built for the Supabase x Sodabase x BuilderBase NYC Hackathon (Nov 4, 2026).
 
 - Supabase: Postgres, Auth, Storage, Edge Functions
 - Sodabase: data quality monitoring
-- Frontend: [Next.js / React + Tailwind + shadcn/ui]
-- Hosting: [Vercel / Netlify]
+- Frontend: Next.js, React, Tailwind
+- Hosting: Vercel
 
-## Features (MVP, keep it small)
+## Features
 
-- [ ] Auth (sign up / log in)
-- [ ] [Core flow 1]
-- [ ] [Core flow 2]
-- [ ] Data quality view in the UI (flag stale, empty or invalid records)
-- [ ] Seeded realistic demo data
+- [x] Auth (sign up / log in)
+- [x] Portfolio: fine estimate from reported data next to the estimate with gaps filled
+- [x] Building page: 12-month readings grid, open issues, emissions against the limit
+- [x] Add or correct a reading, validated by an edge function
+- [x] Alerts open and resolve themselves as readings change
+- [x] Seeded fictional portfolio of 8 buildings
 
-## Data model (2 to 4 tables)
+Demo login: `demo@meterproof.app` / `meterproof-demo` (fictional data).
+
+## How the estimate works
+
+- Window: trailing 12 completed months, so every season is covered.
+- Emissions: usage x LL97 coefficient (2024-2029). Electricity 0.000288962 tCO2e/kWh, natural gas 0.00005311 tCO2e/kBtu (0.005311 per therm).
+- Limits: office (B) 0.00846, hotel (R-1) 0.00987, multifamily (R-2) 0.00675 tCO2e/sf. Fine: $268 per ton over the limit.
+- Missing months are filled from the same month last year, then from the average of reported months.
+- These are estimates, not filings. Real LL97 reports also handle mixed occupancy, other fuels and deductions, which are out of scope. Each factor and limit row stores its source URL.
+
+## Data model
 
 | Table | Purpose | Key columns |
 |-------|---------|-------------|
-| `profiles` | Users | `id` (FK auth.users), `created_at`, `updated_at` |
-| `[main_table]` | [core entity] | `id`, `user_id`, `...`, `created_at`, `updated_at` |
-| `[events_table]` | [data that changes over time] | `id`, `[main_id]` FK, `value`, `recorded_at` |
+| `profiles` | Users, created on signup | `id` (FK auth.users), `full_name` |
+| `buildings` | Covered buildings | `owner_id`, `address`, `occupancy_group`, `gross_floor_area_sf`, `uses_natural_gas` |
+| `meter_readings` | Monthly usage | `building_id`, `fuel`, `period_month`, `quantity`, `unit`, `source` |
+| `alerts` | Data issues, written only by the database | `building_id`, `kind`, `severity`, `fuel`, `period_month`, `status` |
+| `emission_factors` | LL97 coefficients (config) | `fuel`, `unit`, `tco2e_per_unit`, `source_url` |
+| `emission_limits` | LL97 limits and fine rate (config) | `occupancy_group`, `tco2e_per_sf`, `penalty_usd_per_tco2e`, `source_url` |
+
+`building_compliance` is a `security_invoker` view holding the one calculation every screen uses.
 
 ## Data quality rules (protects the Sodabase score)
 
@@ -62,14 +80,15 @@ Built for the Supabase x Sodabase x BuilderBase NYC Hackathon (Nov 4, 2026).
 - Row-level security enabled on every table, policies based on `auth.uid()`
 - Indexes on all foreign keys and on columns used to filter or sort
 - Normalized schema; migrations committed in `/supabase/migrations`
-- Edge functions for validation and background logic: [list them]
+- Edge function `submit-reading`: validates format, completed month, unit and a size-based ceiling, then writes with the caller's JWT so RLS still applies
+- Alert engine in private Postgres functions, run by statement-level triggers so bulk loads recompute once per building
 
 ## Getting started
 
 ```bash
-git clone [REPO URL]
-cd [REPO NAME]
-cp .env.example .env.local   # add SUPABASE_URL and SUPABASE_ANON_KEY
+git clone https://github.com/petrovvvic/supabase_hackathon.git
+cd supabase_hackathon
+cp .env.example .env.local   # add NEXT_PUBLIC_SUPABASE_ANON_KEY
 npm install
 npm run dev
 ```
@@ -77,8 +96,9 @@ npm run dev
 Apply the schema:
 
 ```bash
-supabase link --project-ref [PROJECT_REF]
-supabase db push
+npx supabase link --project-ref xtveantrlwgtsnxpgyxz
+npx supabase db push --remote --include-seed
+npx supabase functions deploy submit-reading
 ```
 
 ## Demo
@@ -96,8 +116,7 @@ supabase db push
 
 ## Team
 
-- [Name], [role]
-- [Name], [role]
+- Andrei Piatrouski
 
 ## Instructions for Claude
 
