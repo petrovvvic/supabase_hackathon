@@ -14,6 +14,23 @@ Under NYC's Local Law 97, large buildings pay $268 for every ton of carbon over 
 
 **Meterproof shows the gaps before the fine does.**
 
+## What bad data looks like
+
+Some bad data is impossible, so it never gets in. Some is possible but suspicious, or simply absent, so it gets flagged.
+
+| Bad data | Example | What Meterproof does |
+|---|---|---|
+| Missing reading | The Marlowe has no gas bills for January and February 2026 | Flags each gap and estimates those months, which reveals a $26,203 projected fine behind a $0 current fine |
+| Mistyped reading | Tillary Plaza shows 2,017,340 kWh for July 2026, 10 times last July | Flags it as a likely typo. Correcting it removes a $25,616 fine |
+| Stale meter | Fulton Lofts has no readings since June 2026 | Flags the meter as out of date |
+| Too little data | A building with 1 electricity reading and no gas readings | Shows "Not enough data" instead of a misleading $0 fine |
+| Impossible usage | 9,999,999 kWh in one month for a 78,000 sq ft building | Rejects it with a clear message |
+| Negative usage | -5 kWh | Rejects it |
+| Unfinished month | A reading for a month that hasn't ended | Rejects it |
+| Wrong unit | Natural gas entered in kWh instead of therms | Rejects it in the database |
+| Duplicate reading | A second reading for the same meter and month | Refuses it and offers to replace the existing one |
+| Incomplete address | `351 W 44th Street` with no borough or ZIP | Requires a building number, one of the five boroughs and an NYC ZIP |
+
 ## How it meets the judging criteria
 
 | Criterion | What we built | Where to look |
