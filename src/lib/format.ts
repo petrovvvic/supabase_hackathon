@@ -1,6 +1,10 @@
 export const usd = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-export const tons = (n: number) => `${Math.round(n).toLocaleString("en-US")} t`;
+export const tons = (n: number) =>
+  `${Number(n).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} t`;
+// Grid cells: small gas bills stay exact instead of turning into 0.2k.
+export const usage = (n: number) =>
+  n < 1000 ? String(Math.round(n)) : `${Math.round(n / 100) / 10}k`;
 export const monthLabel = (iso: string, style: "short" | "long" = "short") =>
   new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", {
     month: style, year: "numeric", timeZone: "UTC",

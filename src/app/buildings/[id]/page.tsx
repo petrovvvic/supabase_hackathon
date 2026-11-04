@@ -2,7 +2,7 @@ import { connection } from "next/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { fuelLabel, monthLabel, tons, usd } from "@/lib/format";
+import { fuelLabel, monthLabel, tons, usage, usd } from "@/lib/format";
 import type { Alert, Building, Compliance, Reading } from "@/lib/types";
 import { Header } from "../../header";
 import { ReadingForm } from "./reading-form";
@@ -22,12 +22,15 @@ export default async function BuildingPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const supabase = await createClient();
-  const [{ data: building }, { data: compliance }, { data: alerts }, { data: readings }] = await Promise.all([
+  const [{ data: building, error: buildingError }, { data: compliance, error: complianceError }, { data: alerts, error: alertsError }, { data: readings, error: readingsError }] = await Promise.all([
     supabase.from("buildings").select("id, name, address, occupancy_group, gross_floor_area_sf, uses_natural_gas").eq("id", id).maybeSingle(),
     supabase.from("building_compliance").select("*").eq("building_id", id).maybeSingle(),
     supabase.from("alerts").select("id, building_id, kind, severity, fuel, period_month, message").eq("building_id", id).eq("status", "open").order("severity").order("period_month"),
     supabase.from("meter_readings").select("fuel, period_month, quantity, unit").eq("building_id", id).order("period_month", { ascending: false }).limit(48),
   ]);
+  // Failing loudly beats showing a missing reading as a gap when it just didn't load.
+  const failed = buildingError ?? complianceError ?? alertsError ?? readingsError;
+  if (failed) throw new Error(failed.message);
   if (!building || !compliance) notFound();
 
   const b = building as Building;
@@ -85,8 +88,13 @@ export default async function BuildingPage({ params }: { params: Promise<{ id: s
             <div className="absolute top-10 -translate-x-1/2 whitespace-nowrap font-mono text-xs" style={{ left: `min(max(${pct(c.limit_tco2e)}, 3.5rem), calc(100% - 3.5rem))` }}>limit {tons(c.limit_tco2e)}</div>
           </div>
           <p className="mt-1 text-sm text-muted">
-            Top bar: reported readings. Lower bar: missing months filled from the same month last year. $268 per ton over the limit. This is an estimate, not a filing.
+            Top bar: reported readings. Lower bar: missing months filled from the same month last year, or from the average of reported months if last year is missing too. $268 per ton over the limit. This is a rolling 12-month estimate, not a filing. LL97 is assessed by calendar year.
           </p>
+          {open.some((a) => a.kind === "out_of_range") && (
+            <p className="mt-2 rounded-md bg-warn-soft px-3 py-2 text-sm text-warn">
+              This estimate includes a flagged reading. Check it before relying on these numbers.
+            </p>
+          )}
         </section>
         )}
 
@@ -113,7 +121,7 @@ export default async function BuildingPage({ params }: { params: Promise<{ id: s
                       const tone = !r ? "bg-risk-soft text-risk font-semibold" : bad ? "bg-warn-soft text-warn font-semibold" : "bg-ok-soft text-ok";
                       return (
                         <td key={m} className={`rounded px-1 py-2 font-mono ${tone}`}>
-                          {r ? Math.round(Number(r.quantity) / 1000 * 10) / 10 + "k" : "gap"}
+                          {r ? usage(Number(r.quantity)) : "gap"}
                         </td>
                       );
                     })}
@@ -122,7 +130,7 @@ export default async function BuildingPage({ params }: { params: Promise<{ id: s
               </tbody>
             </table>
           </div>
-          <p className="mt-2 text-xs text-muted">Electricity in kWh, natural gas in therms. Thousands.</p>
+          <p className="mt-2 text-xs text-muted">Electricity in kWh, natural gas in therms. k means thousands.</p>
         </section>
 
         <div className="mt-6 grid gap-6 md:grid-cols-2">

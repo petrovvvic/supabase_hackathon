@@ -12,12 +12,14 @@ export const instant = false;
 export default async function Portfolio() {
   await connection();
   const supabase = await createClient();
-  const [{ data: buildings, error }, { data: compliance }, { data: alerts }] = await Promise.all([
+  const [{ data: buildings, error }, { data: compliance, error: complianceError }, { data: alerts, error: alertsError }] = await Promise.all([
     supabase.from("buildings").select("id, name, address, occupancy_group, gross_floor_area_sf, uses_natural_gas").order("name"),
     supabase.from("building_compliance").select("*"),
     supabase.from("alerts").select("id, building_id, kind, severity, fuel, period_month, message").eq("status", "open"),
   ]);
-  if (error) throw new Error(error.message);
+  // Failing loudly beats showing "0 issues" when the data simply didn't load.
+  const failed = error ?? complianceError ?? alertsError;
+  if (failed) throw new Error(failed.message);
 
   const byId = new Map((compliance as Compliance[] | null ?? []).map((c) => [c.building_id, c]));
   const open = (alerts as Alert[] | null) ?? [];
@@ -50,7 +52,7 @@ export default async function Portfolio() {
             <h1 className="text-2xl font-semibold tracking-tight">Portfolio</h1>
             {window && (
               <p className="mt-1 text-muted">
-                Estimates for {monthLabel(window.window_start)} to {monthLabel(window.window_end)}, using 2024–2029 limits. Not a filing.
+                Rolling 12-month estimates for {monthLabel(window.window_start)} to {monthLabel(window.window_end)}, using 2024–2029 limits. LL97 is assessed by calendar year, so this isn&apos;t a filing.
               </p>
             )}
             <div className="mt-5 grid gap-3 sm:grid-cols-3">

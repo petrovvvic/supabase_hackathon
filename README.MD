@@ -41,16 +41,17 @@ Under NYC's Local Law 97, large buildings pay $268 for every ton of carbon over 
 - [x] Building page: 12-month readings grid, open issues, emissions against the limit
 - [x] Add or correct a reading, validated by an edge function
 - [x] Alerts open and resolve themselves as readings change
-- [x] Seeded fictional portfolio of 8 buildings
+- [x] Seeded sample portfolio of 9 buildings
 
 Demo login: `demo@meterproof.app` / `meterproof-demo`. All readings are invented. Addresses are too, except 307 West 38th Street, where the hackathon took place; only its floor area is real.
 
 ## How the estimate works
 
-- Window: trailing 12 completed months, so every season is covered.
+- Window: trailing 12 completed months, so every season is covered. LL97 itself is assessed by calendar year, so this is a run-rate estimate.
 - Emissions: usage x LL97 coefficient (2024-2029). Electricity 0.000288962 tCO2e/kWh, natural gas 0.00005311 tCO2e/kBtu (0.005311 per therm).
 - Limits: office (B) 0.00846, hotel (R-1) 0.00987, multifamily (R-2) 0.00675 tCO2e/sf. Fine: $268 per ton over the limit.
 - Missing months are filled from the same month last year, then from the average of reported months.
+- No estimate is shown until each meter the building uses has at least 6 of the last 12 months. Overall completeness would hide a meter with no readings, which would count as zero.
 - These are estimates, not filings. Real LL97 reports also handle mixed occupancy, other fuels and deductions, which are out of scope. Each factor and limit row stores its source URL.
 
 ## Data model
@@ -86,7 +87,7 @@ Demo login: `demo@meterproof.app` / `meterproof-demo`. All readings are invented
 - Normalized schema; migrations committed in `/supabase/migrations`
 - Edge function `submit-reading`: validates format, completed month, unit and a size-based ceiling, then writes with the caller's JWT so RLS still applies
 - Alert engine in private Postgres functions, run by statement-level triggers so bulk loads recompute once per building
-- Scheduled job `capture-data-health` (pg_cron): refreshes alerts so a newly missed month gets flagged, and records each building's health in `data_health_snapshots`. It runs every 15 minutes, which is faster than the product needs, so Sodabase has steady real data to learn from during the hackathon. Daily would be enough in production
+- Scheduled job `capture-data-health` (pg_cron): refreshes alerts so a newly missed month gets flagged, and records each building's health in `data_health_snapshots`. It runs every 15 minutes, which is faster than the product needs, so Sodabase has steady real data to learn from during the hackathon. Rows older than 90 days are deleted. Daily would be enough in production
 
 ## Getting started
 
