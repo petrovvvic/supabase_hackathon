@@ -52,6 +52,19 @@ export default async function BuildingPage({ params }: { params: Promise<{ id: s
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">{b.name}</h1>
         <p className="text-muted">{b.address} · {GROUPS[b.occupancy_group]} ({b.occupancy_group}) · {b.gross_floor_area_sf.toLocaleString("en-US")} sq ft</p>
 
+        {!c.has_enough_data ? (
+        <section className="mt-6 rounded-lg border border-line bg-surface p-5">
+          <h2 className="text-lg font-semibold">Not enough data for a fine estimate</h2>
+          <p className="mt-1 text-muted">
+            Each meter needs at least 6 of the last 12 months. A meter with few readings would make the estimate look lower than it is.
+          </p>
+          <ul className="mt-3 space-y-1 font-mono text-sm">
+            {fuels.map((fuel) => (
+              <li key={fuel}>{fuelLabel(fuel)}: {months.filter((m) => has.has(`${fuel}|${m}`)).length} of 12 months</li>
+            ))}
+          </ul>
+        </section>
+        ) : (
         <section className="mt-6 rounded-lg border border-line bg-surface p-5">
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
@@ -75,6 +88,7 @@ export default async function BuildingPage({ params }: { params: Promise<{ id: s
             Top bar: reported readings. Lower bar: missing months filled from the same month last year. $268 per ton over the limit. This is an estimate, not a filing.
           </p>
         </section>
+        )}
 
         <section className="mt-6 rounded-lg border border-line bg-surface p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">

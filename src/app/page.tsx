@@ -25,12 +25,15 @@ export default async function Portfolio() {
     b, c: byId.get(b.id), issues: open.filter((a) => a.building_id === b.id).length,
   }));
   // Buildings whose estimate moves once the gaps are filled matter most.
-  rows.sort((x, y) =>
-    Math.abs((y.c?.adjusted_fine_usd ?? 0) - (y.c?.reported_fine_usd ?? 0)) -
-    Math.abs((x.c?.adjusted_fine_usd ?? 0) - (x.c?.reported_fine_usd ?? 0)) || y.issues - x.issues);
+  const fineGap = (c?: Compliance) =>
+    c?.has_enough_data ? Math.abs(Number(c.adjusted_fine_usd) - Number(c.reported_fine_usd)) : 0;
+  rows.sort((x, y) => fineGap(y.c) - fineGap(x.c) || y.issues - x.issues);
 
-  const reported = rows.reduce((s, r) => s + Number(r.c?.reported_fine_usd ?? 0), 0);
-  const adjusted = rows.reduce((s, r) => s + Number(r.c?.adjusted_fine_usd ?? 0), 0);
+  // A building without enough data has no estimate, so it can't count towards a total.
+  const estimated = rows.filter((r) => r.c?.has_enough_data);
+  const left_out = rows.length - estimated.length;
+  const reported = estimated.reduce((s, r) => s + Number(r.c?.reported_fine_usd ?? 0), 0);
+  const adjusted = estimated.reduce((s, r) => s + Number(r.c?.adjusted_fine_usd ?? 0), 0);
   const window = rows[0]?.c;
 
   return (
@@ -51,10 +54,15 @@ export default async function Portfolio() {
               </p>
             )}
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <Stat label="Fine estimate from reported data" value={usd(reported)} />
-              <Stat label="Fine estimate with gaps filled" value={usd(adjusted)} tone={adjusted > reported ? "risk" : undefined} />
+              <Stat label="Fine estimate from reported data" value={estimated.length ? usd(reported) : "—"} />
+              <Stat label="Fine estimate with gaps filled" value={estimated.length ? usd(adjusted) : "—"} tone={adjusted > reported ? "risk" : undefined} />
               <Stat label="Open data issues" value={String(open.length)} tone={open.length ? "warn" : undefined} />
             </div>
+            {left_out > 0 && (
+              <p className="mt-3 text-sm text-muted">
+                {left_out === 1 ? "1 building is" : `${left_out} buildings are`} left out of the fine totals because there isn&apos;t enough data yet.
+              </p>
+            )}
             <div className="mt-6 overflow-x-auto rounded-lg border border-line bg-surface">
               <table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="border-b border-line text-muted">
@@ -82,9 +90,15 @@ export default async function Portfolio() {
                           <span className="font-mono text-xs">{c?.reported_readings}/{c?.expected_readings}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono">{c && `${tons(c.adjusted_tco2e)} / ${tons(c.limit_tco2e)}`}</td>
-                      <td className="px-4 py-3 text-right font-mono">{usd(Number(c?.reported_fine_usd ?? 0))}</td>
-                      <td className={`px-4 py-3 text-right font-mono ${Number(c?.adjusted_fine_usd) > Number(c?.reported_fine_usd) ? "font-semibold text-risk" : ""}`}>{usd(Number(c?.adjusted_fine_usd ?? 0))}</td>
+                      {c?.has_enough_data ? (
+                        <>
+                          <td className="px-4 py-3 text-right font-mono">{`${tons(c.adjusted_tco2e)} / ${tons(c.limit_tco2e)}`}</td>
+                          <td className="px-4 py-3 text-right font-mono">{usd(Number(c.reported_fine_usd))}</td>
+                          <td className={`px-4 py-3 text-right font-mono ${Number(c.adjusted_fine_usd) > Number(c.reported_fine_usd) ? "font-semibold text-risk" : ""}`}>{usd(Number(c.adjusted_fine_usd))}</td>
+                        </>
+                      ) : (
+                        <td colSpan={3} className="px-4 py-3 text-right text-muted">Not enough data</td>
+                      )}
                       <td className="px-4 py-3 text-right font-mono">{issues}</td>
                     </tr>
                   ))}

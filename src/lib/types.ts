@@ -10,6 +10,8 @@ export type Compliance = {
   limit_tco2e: number;
   reported_fine_usd: number;
   adjusted_fine_usd: number;
+  min_fuel_months: number;
+  has_enough_data: boolean;
 };
 export type Building = {
   id: string;
